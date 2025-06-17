@@ -1,0 +1,34 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:  
+  datadog/exporter:
+    hostname: "otel-collector"
+    api:
+      key: ${env:DATADOG_API_KEY}
+    metrics:
+      resource_attributes_as_tags: true
+
+
+processors:
+  batch:
+    timeout: 20s
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ datadog/exporter ]
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ datadog/exporter ]
