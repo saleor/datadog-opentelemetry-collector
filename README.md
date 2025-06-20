@@ -16,7 +16,7 @@ This repository contains terraform module with example opentelemetry-collector d
 
 ```
 module "otel_collector" {
-  source = "modules/datadog-opentelemetry-collector"
+  source = "github.com/saleor/datadog-opentelemetry-collector"
 
   name = "opentelemetry"
 
