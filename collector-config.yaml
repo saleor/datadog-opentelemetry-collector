@@ -8,6 +8,7 @@ exporters:
   datadog/exporter:
     hostname: "otel-collector"
     api:
+      site: ${env:DATADOG_SITE}
       key: ${env:DATADOG_API_KEY}
     metrics:
       resource_attributes_as_tags: true

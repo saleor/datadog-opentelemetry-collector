@@ -22,6 +22,11 @@ variable "datadog_api_key_secret_name" {
   type = string
 }
 
+variable "datadog_site" {
+  type    = string
+  default = "datadoghq.com"
+}
+
 variable "otel_workers_count" {
   type    = number
   default = 1

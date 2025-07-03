@@ -66,6 +66,10 @@ resource "aws_ecs_task_definition" "otel_collector" {
         {
           name  = "OTEL_CONFIG"
           value = file("${path.module}/collector-config.yaml")
+        },
+        {
+          name  = "DATADOG_SITE"
+          value = var.datadog_site
         }
       ]
       secrets = [
