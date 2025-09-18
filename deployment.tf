@@ -2,6 +2,7 @@ data "aws_region" "current" {}
 locals {
   collector_deployment_name       = "otel-collector"
   collector_otlp_port             = 4317
+  collector_otlp_http_port        = 4318
   collector_health_check_port     = 13133
   collector_health_check_endpoint = "/"
 }
@@ -21,11 +22,18 @@ resource "aws_security_group" "otel_collector" {
     description = "Allow VPC traffic on OTLP port"
   }
   ingress {
+    from_port   = local.collector_otlp_http_port
+    to_port     = local.collector_otlp_http_port
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.vpc.cidr_block]
+    description = "Allow VPC traffic on OTLP HTTP port"
+  }
+  ingress {
     from_port   = local.collector_health_check_port
     to_port     = local.collector_health_check_port
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.vpc.cidr_block]
-    description = "Allow VPC traffic on OTLP port"
+    description = "Allow VPC traffic on health check port"
   }
   egress {
     from_port   = 0
@@ -54,6 +62,11 @@ resource "aws_ecs_task_definition" "otel_collector" {
         {
           containerPort = local.collector_otlp_port
           hostPort      = local.collector_otlp_port
+          protocol      = "tcp"
+        },
+        {
+          containerPort = local.collector_otlp_http_port
+          hostPort      = local.collector_otlp_http_port
           protocol      = "tcp"
         },
         {
@@ -108,6 +121,12 @@ resource "aws_ecs_service" "otel_collector" {
     container_name   = local.collector_deployment_name
     container_port   = local.collector_otlp_port
   }
+
+  load_balancer {
+    target_group_arn = aws_alb_target_group.otlp_http.arn
+    container_name   = local.collector_deployment_name
+    container_port   = local.collector_otlp_http_port
+  }
 }
 
 resource "aws_alb_target_group" "otlp" {
@@ -115,6 +134,19 @@ resource "aws_alb_target_group" "otlp" {
   port        = local.collector_otlp_port
   target_type = "ip"
   protocol    = "TCP"
+  vpc_id      = aws_vpc.vpc.id
+
+  health_check {
+    path = local.collector_health_check_endpoint
+    port = local.collector_health_check_port
+  }
+}
+
+resource "aws_alb_target_group" "otlp_http" {
+  name        = "${local.collector_deployment_name}-otlp-http"
+  port        = local.collector_otlp_http_port
+  target_type = "ip"
+  protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
 
   health_check {
