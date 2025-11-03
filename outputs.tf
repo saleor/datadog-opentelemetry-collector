@@ -9,7 +9,3 @@ output "vpc_id" {
 output "public_subnet_ids" {
   value = [for subnet in aws_subnet.public : subnet.id]
 }
-
-output "otlp_http_target_group_arn" {
-  value = aws_alb_target_group.otlp_http.arn
-}

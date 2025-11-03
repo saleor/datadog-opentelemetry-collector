@@ -1,6 +1,5 @@
 locals {
   nlb_name  = "${var.name}-private"
-  otlp_port = 4317
 }
 
 resource "aws_security_group" "private_nlb" {
@@ -13,11 +12,12 @@ resource "aws_vpc_security_group_ingress_rule" "vpc_otlp" {
 
   cidr_ipv4   = aws_vpc.vpc.cidr_block
   ip_protocol = "tcp"
-  from_port   = local.otlp_port
-  to_port     = local.otlp_port
+  from_port   = local.collector_otlp_port
+  to_port     = local.collector_otlp_port
 
   description = "Allow OTLP traffic from VPC"
 }
+
 resource "aws_vpc_security_group_ingress_rule" "privatelink_otlp" {
   for_each = toset(var.allowed_cidr_blocks)
 
@@ -25,8 +25,8 @@ resource "aws_vpc_security_group_ingress_rule" "privatelink_otlp" {
 
   cidr_ipv4   = each.value
   ip_protocol = "tcp"
-  from_port   = local.otlp_port
-  to_port     = local.otlp_port
+  from_port   = local.collector_otlp_port
+  to_port     = local.collector_otlp_port
   description = "Allow OTLP traffic from Privatelink"
 }
 
@@ -47,7 +47,7 @@ resource "aws_lb" "private_nlb" {
 
 resource "aws_lb_listener" "otlp" {
   load_balancer_arn = aws_lb.private_nlb.arn
-  port              = local.otlp_port
+  port              = aws_alb_target_group.otlp.port
   protocol          = "TCP"
 
   default_action {

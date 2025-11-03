@@ -95,7 +95,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
         logDriver = "awslogs"
         options = {
           awslogs-group         = aws_cloudwatch_log_group.log_group.name
-          awslogs-region        = data.aws_region.current.name
+          awslogs-region        = data.aws_region.current.region
           awslogs-stream-prefix = local.collector_deployment_name
         }
       }
@@ -122,10 +122,17 @@ resource "aws_ecs_service" "otel_collector" {
     container_port   = local.collector_otlp_port
   }
 
-  load_balancer {
-    target_group_arn = aws_alb_target_group.otlp_http.arn
-    container_name   = local.collector_deployment_name
-    container_port   = local.collector_otlp_http_port
+  dynamic "load_balancer" {
+    for_each = var.additional_load_balancers
+
+    content {
+      target_group_arn = load_balancer.value.target_group.arn
+      container_name   = local.collector_deployment_name
+      container_port   = {
+        HTTP = local.collector_otlp_http_port
+        GRPC = local.collector_otlp_port
+      }[load_balancer.value.protocol]
+    }
   }
 }
 
@@ -134,19 +141,6 @@ resource "aws_alb_target_group" "otlp" {
   port        = local.collector_otlp_port
   target_type = "ip"
   protocol    = "TCP"
-  vpc_id      = aws_vpc.vpc.id
-
-  health_check {
-    path = local.collector_health_check_endpoint
-    port = local.collector_health_check_port
-  }
-}
-
-resource "aws_alb_target_group" "otlp_http" {
-  name        = "${local.collector_deployment_name}-otlp-http"
-  port        = local.collector_otlp_http_port
-  target_type = "ip"
-  protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
 
   health_check {
