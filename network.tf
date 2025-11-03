@@ -1,3 +1,10 @@
+data "aws_availability_zones" "availability_zones" {}
+
+
+locals {
+  subnet_newbits = ceil(log(length(data.aws_availability_zones.availability_zones.names), 2)) + 1
+}
+
 resource "aws_vpc" "vpc" {
   cidr_block = var.network_cidr_block
   tags = {
@@ -6,13 +13,13 @@ resource "aws_vpc" "vpc" {
 }
 
 resource "aws_subnet" "public" {
-  for_each = { for index, zone in var.availability_zones : zone => {
+  for_each = { for index, zone in data.aws_availability_zones.availability_zones.names : zone => {
     index  = index
     suffix = substr(zone, -1, -1)
   } }
 
   vpc_id                  = aws_vpc.vpc.id
-  cidr_block              = cidrsubnet(aws_vpc.vpc.cidr_block, 3, each.value.index * 2)
+  cidr_block              = cidrsubnet(aws_vpc.vpc.cidr_block, local.subnet_newbits, each.value.index * 2)
   availability_zone       = each.key
   map_public_ip_on_launch = true
 
@@ -22,13 +29,13 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  for_each = { for index, zone in var.availability_zones : zone => {
+  for_each = { for index, zone in data.aws_availability_zones.availability_zones.names : zone => {
     index  = index
     suffix = substr(zone, -1, -1)
   } }
 
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 3, each.value.index * 2 + 1)
+  cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, local.subnet_newbits, each.value.index * 2 + 1)
   availability_zone = each.key
 
   tags = {
@@ -52,7 +59,7 @@ resource "aws_eip" "nat_gateway" {
 
 resource "aws_nat_gateway" "nat_gateway" {
   allocation_id = aws_eip.nat_gateway.id
-  subnet_id     = aws_subnet.public[var.availability_zones[0]].id
+  subnet_id     = aws_subnet.public[data.aws_availability_zones.availability_zones.names[0]].id
 
   tags = {
     Name = "${var.name}-nat"
@@ -75,7 +82,7 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table" "private" {
-  for_each = toset(var.availability_zones)
+  for_each = toset(data.aws_availability_zones.availability_zones.names)
 
   vpc_id = aws_vpc.vpc.id
 

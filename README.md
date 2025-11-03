@@ -25,11 +25,6 @@ module "otel_collector" {
   name = "opentelemetry"
 
   network_cidr_block = "192.168.0.0/16"  # CIDR block different from Saleor Cloud
-  availability_zones = [                 # Saleor Cloud K8S cluster AZs
-      "eu-west-1a",
-      "eu-west-1b",
-      "eu-west-1c"
-    ]
   allowed_aws_accounts = [ "XXXXXXXXXXXX" ]  # Saleor Cloud account id
   allowed_cidr_blocks  = [ "X.X.X.X/XX" ]    # Saleor Cloud K8S cluster VPC
 
