@@ -2,18 +2,19 @@
 
 In order to receive OpenTelemetry signals (traces and metrics) from Saleor Cloud environments customers must provide their OpenTelemetry endpoint. To avoid potential security issues we recommend not to make this endpoint open to internet and use AWS VPC PrivateLink. AWS’ docs: https://aws.amazon.com/privatelink/
 
-Saleor hosts OpenTelemetry exporter in AWS eu-west-1 region.
-Clients must setup datadog-opentelemetry-collector in same region and availability zones.
-Before applying terraform module please make sure to create
+Saleor hosts Saleor Cloud environments and OpenTelemetry exporter in AWS eu-west-1 and us-east-1 regions.
+Clients must setup datadog-opentelemetry-collector in the region matching their Saleor Cloud environment.
+Before applying terraform module please make sure to create secret with Datadog API Key.
 
 This repository contains terraform module with example opentelemetry-collector deployment and AWS VPC PrivateLink.
 
 **Setup guide:**
 
-1. Client creates secret with Datadog API Key in AWS Secrets manager.
-2. Client sets up a Terraform module with OTEL collector.
-3. Client shares VPC PrivateLink service name (tf module output) with Saleor.
-4. Saleor sets up OTEL metrics export using client’s PrivateLink service name.
+1. Saleor shares AWS account ID and network range (`allowed_cidr_blocks`) with client.
+2. Client creates secret with Datadog API Key in AWS Secrets manager.
+3. Client sets up a Terraform module with OTEL collector.
+4. Client shares VPC PrivateLink service name (tf module output) with Saleor.
+5. Saleor sets up OTEL metrics export using client’s PrivateLink service name.
 
 **Usage:**
 
